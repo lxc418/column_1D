@@ -1,45 +1,59 @@
-clear
-load plot.mat
-fclose('all');
+% clear
+% load plot.mat
+% fclose('all');
+run('/storage/macondo/s4524462/SutraLab/mfiles/slsetpath.m')
 c=ConstantObj();
 
-time_step = length(bcof);
+time_step = length(et);
 time_day  = [bcof.tout]/3600/24;%second to day
 time_nod_day = arrayfun(@(y) y.tout,nod) * c.dayPsec;
 water_table  = inp.pbc/9800;
 
-x_matrix = reshape(nod(1).terms{x_idx},[inp.nn1,inp.nn2]);%inp.nn2 is number of nodes in x direction 
+x_matrix = reshape(nod(1).terms{x_idx},[inp.nn1,inp.nn2]);%inp.nn2 is number of nodes in y direction 
 y_matrix = reshape(nod(1).terms{y_idx},[inp.nn1,inp.nn2]);
 x_ele_matrix = reshape(ele(1).terms{xele_idx},[inp.nn1-1,inp.nn2-1]);
 y_ele_matrix = reshape(ele(1).terms{yele_idx},[inp.nn1-1,inp.nn2-1]);
 
-%% evaporation data
-evapo_kgs = zeros(inp.nn2,time_step);
-for i=1:inp.nn2
-    
-if i<inp.nn2   
-    area1(1:i)    = (x_matrix(1,i+1)-x_matrix(1,i))*inp.z(1); %evaporation area 
-else
-    area1(1:i)    = (x_matrix(1,i)-x_matrix(1,i-1))*inp.z(1); %the right end node
-end 
 
-    evapo_kgs(i,:)  = -arrayfun(@(y) y.qin(i),bcof);
-    evapo_mmday     = evapo_kgs/area1(i)*c.secPday; %evaporation rate of every surface node
+%% evaporation data (from bcof without the vapor contribution)
+% evapo_kgs = zeros(time_step,inp.nn2);
+			   
+% for i=1:inp.nn2
+																	   
+% if i<inp.nn2   
+    % area1_m2(1:i)    = (x_matrix(1,i+1)-x_matrix(1,i))*inp.z(1); %evaporation area 
+% else
+    % area1_m2(1:i)    = (x_matrix(1,i)-x_matrix(1,i-1))*inp.z(1); %the right end node
+% end 
+
+    % evapo_kgs(i,:)  = -arrayfun(@(y) y.qin(i),bcof);
+    % evapo_mmday     = evapo_kgs/area1_m2(i)*86400; %evaporation rate of every surface node
+    										   
+% end
+
+%% solute inflow from bottom (from bcof without the vapor contribution)
+
+for i= 1:inp.nn2
+
+    solute_kgs(i,:)  = -arrayfun(@(y) y.qpu(i),bcop);
     
 end
+solute_gday= solute_kgs'.*c.kg2g*c.secPday;
 
-evapo_mmday(1,:)    =   evapo_mmday(1,:)*2;
-evapo_mmday(end,:)  =   evapo_mmday(end,:)*2;%avoid boundary effect by double the two nodes
-total_evapo_mmday(1:time_step)   =  sum (evapo_mmday(:,1:time_step))./(length(area1)); %total evaporation rate
-
-cumulative_evapo_mm =   zeros(1,time_step); %cumulative evaporation amount
+area1_m2    = (x_matrix(1,2)-x_matrix(1,1))*inp.z(1);
 for i=2:time_step
-    cumulative_evapo_mm(1) =  total_evapo_mmday(1)*inp.scalt*inp.nbcfpr*c.dayPsec;
-    cumulative_evapo_mm(i) =  total_evapo_mmday(i)*inp.scalt*inp.nbcfpr*c.dayPsec + cumulative_evapo_mm(i-1);
+
+	evapo_mmday(1,:)  		 =  reshape(et(1).terms{et_idx},[1,inp.nn2])*c.ms2mmday;
+	total_evapo_mmday(1)     =  sum (evapo_mmday(1,:))./inp.nn2; %the evp rate from the whole surface
+	evapo_mmday(i,:)  		 =  reshape(et(i).terms{et_idx},[1,inp.nn2])*c.ms2mmday;
+	total_evapo_mmday(i)     =  sum (evapo_mmday(i,:))./inp.nn2;
+	
+    cumulative_evapo_mm(1)   =  total_evapo_mmday(1)*inp.scalt*inp.nbcfpr*c.dayPsec;
+    cumulative_evapo_mm(i)   =  total_evapo_mmday(i)*inp.scalt*inp.nbcfpr*c.dayPsec + cumulative_evapo_mm(i-1);
+   
 end
 
    
-
 %% plot control
 fig_pos.left   = 0.05;
 fig_pos.bottom = 0.7;
@@ -50,7 +64,7 @@ fig_pos.height = 0.26;
 a.fs = 15;
 a.lw = 2; %line width
 a.cz = 8; %the size of the marker
-fs   = 2; % sampling frequency
+fs   = 5; % sampling frequency
 % Creating the movie : quality = 100%, no compression is used and the
 % timing is adjusted to the sampling frequency of the time interval
 qt = 100;
@@ -61,81 +75,231 @@ set (gcf,'Position',[0,0,1920,1080]); %resolution 1080p
 
 mov           =  VideoWriter('linux.avi');% avifile('pvc1.avi','quality',qt,'compression','indeo5','fps',fs);
 mov.FrameRate = 5;
-mov.Quality   = qt;
+mov.Quality=qt;
 open(mov);
 
-for nt=1:round(time_step/40):time_step
-    %--- plot concentration---- 
-    subplot('Position',[0.05 0.58 0.14 0.38]),
-%     plot(clab(2,:,1),clab(1,:,1),'rd','MarkerSize',cz,'MarkerFaceColor','r'); hold on
-%     plot(clab(2,:,2),clab(1,:,2),'go','MarkerSize',cz,'MarkerFaceColor','g');hold on
-%     plot(clab(2,:,3),clab(1,:,3),'ks','MarkerSize',cz,'MarkerFaceColor','k');hold on;
-%     hleg1 = legend('74% Sat.','50% Sat.','32% Sat.','Location','SouthEast');
-%     set(hleg1, 'Box', 'on','FontSize',a.fz,'LineWidth',a.lw)
-	c_matrix  = reshape(nod(nt).terms{c_idx},[inp.nn1,inp.nn2]);
-    plot(c_matrix(2,:),y_matrix(2,:),'LineWidth',a.lw);
-    xlabel('Concentration (kg/kg)','FontSize',a.fz,'FontWeight','bold')
-    ax1 = gca;
-    set(ax1,'FontSize',fl,'FontWeight','bold','LineWidth',a.lw)
-    ylabel('Depth (m)','FontSize',a.fz,'FontWeight','bold')
-    axis([0 0.3 y_matrix(2,1) y_matrix(2,end)])
-    %% ---plot Saturation-----
-    subplot('Position',[0.20 0.58 0.14 0.38]),
-%     plot(slab(2,:,1),slab(1,:,1),'rd','MarkerSize',cz,'MarkerFaceColor','r');hold on
-%     plot(slab(2,:,2),slab(1,:,2),'go','MarkerSize',cz,'MarkerFaceColor','g');hold on
-%     plot(slab(2,:,3),slab(1,:,3),'kS','MarkerSize',cz,'MarkerFaceColor','k');hold on
-	s_matrix  = reshape(nod(nt).terms{s_idx},[inp.nn1,inp.nn2]);
-    plot(s_matrix(2,:),y_matrix(2,:),'LineWidth',a.lw);
-    xlabel('Saturation (m^{3} m^{-3})','FontSize',a.fz,'FontWeight','bold')
-    ax1 = gca;
-    set(ax1,'YTickLabel','','FontSize',fl,'FontWeight','bold','LineWidth',a.lw)
-%     hleg1 = legend('74% Sat.','50% Sat.','32% Sat.','Location','SouthWest');
-%     set(hleg1, 'Box', 'on','FontSize',a.fz,'LineWidth',a.lw)
-    axis([0 1 y_matrix(2,1) y_matrix(2,end)])    
-   %% ---plot temperature-----
-    subplot('Position',[0.35 0.58 0.14 0.38]),
-%     plot(tlab(2,:,1),tlab(1,:,1),'rd','MarkerSize',cz,'MarkerFaceColor','r');hold on
-%     plot(tlab(2,:,2),tlab(1,:,2),'go','MarkerSize',cz,'MarkerFaceColor','g');hold on
-%     plot(tlab(2,:,3),tlab(1,:,3),'ks','MarkerSize',cz,'MarkerFaceColor','k');hold on
-    temp_matrix = reshape(nod(nt).terms{temp_idx},[inp.nn1,inp.nn2])-273.15;    
-    plot(temp_matrix(2,:),y_matrix(2,:),'LineWidth',a.lw);
-    xlabel('Temperature (\circC)','FontSize',a.fz,'FontWeight','bold')
-    axis([20 50 y_matrix(2,1) y_matrix(2,end)])    
-    ax1 = gca;
-    set(ax1,'YTickLabel','','FontSize',fl,'FontWeight','bold','LineWidth',a.lw)    
-%     hleg1 = legend('74% Sat.','50% Sat.','32% Sat.','Location','SouthEast');
-%     set(hleg1, 'Box', 'on','FontSize',a.fz,'LineWidth',a.lw)
+for nt=1:round(time_step/50):time_step
+    %% -------------  sub 1 ET over time  --------------
+    a.sub1=subplot('position'...
+         ,[fig_pos.left,fig_pos.bottom,...
+          fig_pos.length-0.05,fig_pos.height]);
+yyaxis left
+    a.plot1=plot(time_day(1:nt),total_evapo_mmday(1:nt),...
+             'k-','linewidth',a.lw);hold off
+    grid on
+	grid minor
+	ax = gca;
+	ax.GridAlpha = 0.4;
+	ax.MinorGridAlpha = 0.5;			   				  
+    %a.plot1=plot(eslab(1,:),eslab(2,:),'cx','linewidth',a.lw);
+    get(gca,'xtick');
+    set(gca,'fontsize',a.fs);
+    ylabel('Evt (mm/day)','FontSize',a.fs);
+    axis([-0.1 time_day(end) -0.1 inf])
+yyaxis right
+    a.plot1=plot(time_day(1:nt),cumulative_evapo_mm(1:nt),...
+             'b--','linewidth',a.lw);hold off
+    %a.plot1=plot(eslab(1,:),eslab(2,:),'cx','linewidth',a.lw);
+    get(gca,'xtick');
+    set(gca,'fontsize',a.fs);
+    txt=sprintf('Result at day %.2f',nod(nt).tout*c.dayPsec);
+    title(txt);
+    xlabel('Time (day)','FontSize',a.fs);
+    ylabel('Cumulative Evt (mm)','FontSize',a.fs);
+    axis([-0.1 time_day(end) 0 inf])
+
+    %title('ead profile');
+
+    %% -------------  sub 2 ET for all surface nodes  --------------
+    a.sub2=subplot('position'...
+         ,[fig_pos.left+0.4,fig_pos.bottom,...
+          fig_pos.length/4,fig_pos.height]);
+yyaxis left		   
+    a.plot2=plot(x_matrix(1,:), evapo_mmday(nt,:),...
+             'k-','linewidth',a.lw);hold off
+	grid on
+	grid minor
+	ax = gca;
+	ax.GridAlpha = 0.4;
+	ax.MinorGridAlpha = 0.5;						 
+    %a.plot1=plot(eslab(1,:),eslab(2,:),'cx','linewidth',a.lw);
+    get(gca,'xtick');
+    set(gca,'fontsize',a.fs);
+    xlabel('x','FontSize',a.fs);
+    ylabel('Evt (mm/day)','FontSize',a.fs);
+    axis([0 x_matrix(1,end) 0 20])
+yyaxis right %plot solid salt thickness
+    solidmass_matrix_kg = reshape(nod(nt).terms{sm_idx},[inp.nn1,inp.nn2]);
+    solidmass_surface_kg(1:inp.nn2) = solidmass_matrix_kg(inp.nn1,:);
+    solidmass_thickness_mm(1:inp.nn2) = solidmass_surface_kg./c.density_solid_nacl_kgPm3./area1_m2*c.m2mm;
+    a.plot2   =  scatter(x_matrix(1,:), solidmass_thickness_mm(1:inp.nn2),10,...
+             'r*');hold off
+    get(gca,'xtick');
+    set(gca,'fontsize',10);
+    ylabel('Solid salt (mm)','FontSize',a.fs);
+    axis([0 x_matrix(1,end) 0 1])        
+
+   
+%% -------- contour plot on Saturation ---------
+    a.sub4=subplot('position'...
+         ,[fig_pos.left,fig_pos.bottom-0.32,...
+          fig_pos.length/3,fig_pos.height]);		  
+    % write pressure and conc in matrix form.
+	% yyaxis left
+    s_matrix  = reshape(nod(nt).terms{s_idx},[inp.nn1,inp.nn2]);
+    a.plot4=contourf(x_matrix,y_matrix,s_matrix,'EdgeColor','none');hold off
+
+%    scatter(nod(1).terms{x_idx},nod(1).terms{y_idx},2,'filled','w');
+    color = jet;
+    color = flipud(color);
+    colormap(gca,color);
+	caxis([0 1])
+    cbsal = colorbar;
+    cbsal.Label.String = 'Saturation (-)';
+    get(gca,'xtick');
+    set(gca,'fontsize',a.fs);
+    xlabel('x (m)','FontSize',a.fs);
+    ylabel('Elevation (m)','FontSize',a.fs);
+    title('Saturation (-)')
+% yyaxis right
+    % s_surface_matrix = s_matrix(inp.nn1,:);
+    % a.plot4=plot(x_matrix(1,:), s_surface_matrix,...
+             % 'w-','linewidth',a.lw);hold off
+    % ylabel('surface saturation (-)','FontSize',a.fs);
+	
+%% -------- Saturation profile---------
+a.sub5=subplot('position'...
+         ,[fig_pos.left+0.17,fig_pos.bottom-0.32,...
+          fig_pos.length/4,fig_pos.height]);		  
+    % write pressure and conc in matrix form.
+    a.plot4=plot(s_matrix(:,2),y_matrix(:,1),'k-','linewidth',a.lw);hold off
+    get(gca,'xtick');
+    set(gca,'fontsize',a.fs);
+    xlabel('Saturation (-)','FontSize',a.fs);
+    ylabel('Elevation (m)','FontSize',a.fs);
+    axis([0 1.1 0 y_matrix(inp.nn1,1)])        
+
+%% -------- contour plot on concentration ---------
+    a.sub5=subplot('position'...
+         ,[fig_pos.left+0.4,fig_pos.bottom-0.32,...
+          fig_pos.length/3,fig_pos.height]);
     
-    %% ----Total Head output-------
-    subplot('Position',[0.50 0.58 0.14 0.38])
-	p_matrix  = reshape(nod(nt).terms{p_idx},[inp.nn1,inp.nn2]);
-	total_head_matrix=p_matrix(2,:)/c.g./(1000+702.24*(c_matrix(2,:)-0.0001))+y_matrix(2,:);
-    plot(total_head_matrix,y_matrix(2,:),'LineWidth',a.lw);
-    xlabel('Total Head (m)','FontSize',a.fz,'FontWeight','bold')
-    axis([-5000 0 y_matrix(2,1) y_matrix(2,end)])
-    ax1 = gca;
-    set(ax1,'YTickLabel','','FontSize',fl,'FontWeight','bold','LineWidth',a.lw)
-    %set(ax1,'YAxisLocation','right','XAxisLocation','top')
-    
-    %% ----Vertical flux output-------
-    subplot('Position',[0.65 0.58 0.14 0.38])
+    % write pressure and conc in matrix form.
+    c_matrix = reshape(nod(nt).terms{c_idx},[inp.nn1,inp.nn2]);    
+    a.plot5=contourf(x_matrix,y_matrix,c_matrix,'EdgeColor','none');hold off
+	
+%	scatter(nod(1).terms{x_idx},nod(1).terms{y_idx},2,'filled','w');
+    color = jet;
+    colormap(gca,color);
+	caxis([0 0.264])
+    cbsal = colorbar;
+    cbsal.Label.String = 'Concentration (-)';
+    get(gca,'xtick');
+    set(gca,'fontsize',a.fs);
+    title('Concentration (kg/kg)');
+    xlabel('x (m)','FontSize',a.fs);
+    ylabel('Elevation (m)','FontSize',a.fs);
+    %axis([10, 40,9,10])
+
+%% -------- Concentration profile---------
+a.sub6=subplot('position'...
+         ,[fig_pos.left+0.57,fig_pos.bottom-0.32,...
+          fig_pos.length/4,fig_pos.height]);		  
+    % write pressure and conc in matrix form.
+    a.plot6=plot(c_matrix(:,2),y_matrix(:,1),'k-','linewidth',a.lw);hold off
+    set(gca,'fontsize',a.fs);
+    xlabel('Concentration (-)','FontSize',a.fs);
+    ylabel('Elevation (m)','FontSize',a.fs);
+    axis([0 0.3 0 y_matrix(inp.nn1,1)])   	
+	
+	%% -------- vapor & liquid water flux profile---------
+a.sub7=subplot('position'...
+         ,[fig_pos.left+0.57,fig_pos.bottom,...
+          fig_pos.length/4,fig_pos.height]);		  
+    % write pressure and conc in matrix form.
+	qvy_matrix= qv(nt).qvy;%vapor (do not need to reshape)
 	vy_matrix = reshape(ele(nt).terms{vy_idx},[inp.nn1-1,inp.nn2-1]);
-    plot(vy_matrix(2,:)*c.secPday*c.m2mm,y_ele_matrix(2,:),'r',qv.qvy(2,:)*c.secPday*c.m2mm,y_ele_matrix(2,:)),'b','LineWidth',a.lw) 
-    xlabel('Vertical Flux (mm day^{-1})','FontSize',a.fz,'FontWeight','bold')
-    hleg1 = legend('liquid water','water vapor','Location','SouthEast');
-    set(hleg1, 'Box', 'on','FontSize',a.fz)
-    axis([-1 5 y_ele_matrix(2,1) y_ele_matrix(2,end)])     
-    ax1 = gca;
-    set(ax1,'YTickLabel','','FontSize',fl,'FontWeight','bold','LineWidth',a.lw)
-    %% ----Relative K output-------
-    subplot('Position',[0.80 0.58 0.14 0.38])
-	kr_matrix = reshape(ele(nt).terms{kr_idx},[inp.nn1-1,inp.nn2-1]);
-    semilogx(kr_matrix(2,:), y_ele_matrix(2,:)),'LineWidth',a.lw)
-    xlabel('Relative K','FontSize',a.fz,'FontWeight','bold')
-    ylabel('Depth (m)','FontSize',a.fz,'FontWeight','bold')
-    axis([10^-20 1 y_ele_matrix(2,1) y_ele_matrix(2,end)])
-    ax1 = gca;
-    set(ax1,'YAxisLocation','right','YColor','k','FontSize',fl,'FontWeight','bold','LineWidth',a.lw)
+
+    a.plot6=plot(qvy_matrix(:,2).*c.ms2mmday,y_ele_matrix(:,1),'r-',...
+		vy_matrix(:,2).*c.ms2mmday,y_ele_matrix(:,1),'k-','linewidth',a.lw);hold off
+    get(gca,'xtick');
+    set(gca,'fontsize',a.fs);
+    xlabel('vertical flux (mm/day)','FontSize',a.fs);
+    ylabel('Elevation (m)','FontSize',a.fs);
+    axis([-1 inf 0 y_matrix(inp.nn1,1)])  
+	
+	%% -------- Relative K profile---------
+a.sub8=subplot('position'...
+         ,[fig_pos.left+0.75,fig_pos.bottom,...
+          fig_pos.length/4,fig_pos.height]);		  
+    % write pressure and conc in matrix form.
+    kr_matrix = reshape(nod(nt).terms{kr_idx},[inp.nn1,inp.nn2]);    
+    a.plot6=semilogx(kr_matrix(:,2),y_matrix(:,1),'k-','linewidth',a.lw);hold off
+    get(gca,'xtick');
+    set(gca,'fontsize',a.fs);
+    xlabel('Relative K (-)','FontSize',a.fs);
+    ylabel('Elevation (m)','FontSize',a.fs);
+    
+    %% -------- contour plot on temperature ---------
+    % a.sub6=subplot('position'...
+         % ,[fig_pos.left,fig_pos.bottom-0.64,...
+          % fig_pos.length/3,fig_pos.height]);
+    
+    % % write pressure and conc in matrix form.
+    % temp_matrix = reshape(nod(nt).terms{temp_idx},[inp.nn1,inp.nn2]);    
+    % a.plot6=contourf(x_matrix,y_matrix,temp_matrix-273.15,'EdgeColor','none');hold off
+	
+% %	scatter(nod(1).terms{x_idx},nod(1).terms{y_idx},2,'filled','w');
+    % color = jet;
+    % colormap(gca,color);
+	% caxis([20 40])
+    % cbsal = colorbar;
+    % cbsal.Label.String = 'Temperature (°C)';
+    % get(gca,'xtick');
+    % set(gca,'fontsize',a.fs);
+    % title('Temperature (°C)');
+    % xlabel('x (m)','FontSize',a.fs);
+    % ylabel('Elevation (m)','FontSize',a.fs);
+    %axis([10, 40,9,10])
+    %% ------------- total solid mass of salt --------------
+    % a.sub7=subplot('position'...
+         % ,[fig_pos.left+0.65,fig_pos.bottom,...
+          % 0.17,fig_pos.height]);
+    % solidmass_total_g = zeros(1,time_step);
+    % solidmass_total_g(nt)   = sum(solidmass_surface_g);
+    % a.plot7 = scatter(time_day(nt),solidmass_total_g(nt),10,'bo');hold on
+    % get(gca,'xtick');
+    % set(gca,'fontsize',a.fs);
+    % set(gca,'yaxislocation','right');
+    % xlabel('time (day)','FontSize',a.fs);
+    % axis([-0.1 time_day(end) 0 inf])															
+    
+    %% ------------- concentration profile at given x --------------
+    % a.sub8=subplot('position'...
+         % ,[fig_pos.left+0.77,fig_pos.bottom-0.32,...
+          % 0.15,fig_pos.height]);
+    % c_profile = c_matrix(:,11:20:51);
+    % a.plot8=plot(c_profile,y_matrix(:,11:20:51),'-','linewidth',a.lw);hold off
+    % get(gca,'xtick');
+    % set(gca,'fontsize',a.fs);
+    % set(gca,'yaxislocation','right');
+    % xlabel('Concentration (-)','FontSize',a.fs);
+    % legend('x=0.2 m','x=0.6 m','x=1.0 m','Location','southeast')
+    % axis([0 0.3 0.2 0.4])
+    %% ------------- zoom in velocity --------------
+    % a.sub9=subplot('position'...
+         % ,[fig_pos.left+0.77,fig_pos.bottom-0.64,...
+          % 0.15,fig_pos.height]);
+    % vx_matrix = reshape(ele(nt).terms{vx_idx},[inp.nn1-1,inp.nn2-1]);
+    % vy_matrix = reshape(ele(nt).terms{vy_idx},[inp.nn1-1,inp.nn2-1]);
+    % a.plot9=quiver(x_ele_matrix,y_ele_matrix,vx_matrix,vy_matrix);hold off
+    % %a.plot1=plot(eslab(1,:),eslab(2,:),'cx','linewidth',a.lw);
+    % get(gca,'xtick');
+    % set(gca,'fontsize',a.fs);
+    % xlabel('x (m)','FontSize',a.fs);
+    % ylabel('Elevation (m)','FontSize',a.fs);
+    % title('Velocity')
+    % axis([1. 1.2 0.0 0.15])
     
     
     
@@ -143,6 +307,7 @@ for nt=1:round(time_step/40):time_step
     writeVideo(mov,F);% add it as the next frame of the movie
 
 end
+
 saveas(a.fig,'a','fig')
 close(mov);
 close(a.fig);
@@ -166,7 +331,7 @@ figure
     cbsal = colorbar;
 	caxis([0 0.246])
     cbsal.Label.String = 'Concentration (-)';
-scatter(nod(1).terms{x_idx},nod(1).terms{y_idx},2,'filled','w');
+% scatter(nod(1).terms{x_idx},nod(1).terms{y_idx},2,'filled','w');
 savefig('concentration_contour.fig')						 
 
 figure
@@ -179,5 +344,5 @@ figure
     cbsal = colorbar;
 	caxis([0 1])
     cbsal.Label.String = 'Saturation (-)';
-scatter(nod(1).terms{x_idx},nod(1).terms{y_idx},2,'filled','w');
+% scatter(nod(1).terms{x_idx},nod(1).terms{y_idx},2,'filled','w');
 savefig('saturation_contour.fig')	
