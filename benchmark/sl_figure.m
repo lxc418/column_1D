@@ -233,7 +233,7 @@ a.sub8=subplot('position'...
          ,[fig_pos.left+0.75,fig_pos.bottom,...
           fig_pos.length/4,fig_pos.height]);		  
     % write pressure and conc in matrix form.
-    kr_matrix = reshape(nod(nt).terms{kr_idx},[inp.nn1,inp.nn2]);    
+    kr_matrix = reshape(ele(nt).terms{kr_idx},[inp.nn1-1,inp.nn2-1]);    
     a.plot6=semilogx(kr_matrix(:,2),y_matrix(:,1),'k-','linewidth',a.lw);hold off
     get(gca,'xtick');
     set(gca,'fontsize',a.fs);

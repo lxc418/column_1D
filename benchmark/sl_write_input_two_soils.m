@@ -25,39 +25,42 @@ fil.export_to_file();
 
 %%
 %soil properties 
-porosity                    = 0.39;
-c_saltwater_kgPkg           = 0.035;
+porosity_coarse             = 0.41; % nreg_array=1
+porosity_fine               = 0.36; % nreg_array=2
+permeability_coarse_m2      = 1.e-9;
+permeability_fine_m2        = 1.15e-11;
+
+c_saltwater_kgPkg           = 0.1;
 % c_freshwater_kgPkg          = 0.0001;
-water_table_m               = 0.1;
+water_table_m               = 0.2;
+diffusivity					= 1e-9;
 
 initial_temperature_C       = 25;
-initial_concentration_kgPkg = 0.035;
-initial_head_aquifer_m      = 0.3;
-permeability_sand_m2        = 5.67e-11;
+initial_concentration_kgPkg = 0.1;
+initial_head_aquifer_m      = 0.2;
 
 time_scale=10; 
 time_cycle=500000; %around 6 days
-diffusivity=1e-9;
 
 %% input for meshing 
 BLOCK = 1; %input block number (every block must be a quadrilateral and the left and right side
 %								should be parallel to the y axis)
 x1  = 0;
-x2  = 0.02;
-nex = 2; %Number of segments along x
+x2  = 0.008;
+nex = 8; %Number of segments along x
 
 y(1,1)=0;
 y(1,2)=0;
 
-ney_section(1)=60; %Number of segments between y1 and y2, must be consistente in every block
+ney_section(1)=40; %Number of segments between y1 and y2, must be consistente in every block
 
-y(2,1)=0.3;
-y(2,2)=0.3;
+y(2,1)=0.20;
+y(2,2)=0.20;
 
-% ney_section(2)=20;
+ney_section(2)=10;
 
-% y(3,1)=0.3;
-% y(3,2)=0.2;
+y(3,1)=0.25;
+y(3,2)=0.25;
 
 % ney_section(3)=30;
 
@@ -101,6 +104,7 @@ nn       =  nx*ny;
 ne       =  nex*ney;
 sequence = 'yxz';
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %dataset 14
 ii = (1:nn)';
 x_nod_array  = x_nod_mtx(:);
@@ -168,12 +172,41 @@ qinc=ny+1-mod(-iqcp,ny);
 qinc(qinc>ny)=1;			   
 uinc = (-iqcp + qinc-1)./ny;  
 
-
-
 %ipbc = node_index_mtx_gravity_compensated(end,:)'; % only the last column. note that the result needs to be in a column
 %pbc  = zeros(size(ipbc)) - 7.37325e+03;
 %ubc  = zeros(size(ipbc)) + 3.0e-03;
 
+%% change soil properties for heterogeneous soil in DATASET14 & 15
+%nodewise
+if mod(nx,2)==1 %odd number
+nreg_array (1:(nx+1)/2*ny,1)  = 1;
+nreg_array ((nx+1)/2*ny+1:nn,1) = 2;
+porosity_array (1:(nx+1)/2*ny,1)  = porosity_coarse;
+porosity_array ((nx+1)/2*ny+1:nn,1) = porosity_fine;
+
+else
+nreg_array (1:nn/2,1)         = 1;
+nreg_array (nn/2+1:nn,1)      = 2;
+porosity_array (1:nn/2,1)     = porosity_coarse;
+porosity_array (nn/2+1:nn,1)  = porosity_fine;
+
+end
+%elementwise
+if mod(nex,2)==1 %odd number
+nreg_array (1:(nex+1)/2*ney,1)  = 1;
+nreg_array ((nex+1)/2*ney+1:ne,1) = 2;
+porosity_array (1:(nex+1)/2*ney,1)  = porosity_coarse;
+porosity_array ((nex+1)/2*ney+1:ne,1) = porosity_fine;
+
+else
+lreg_array (1:ne/2,1)         = 1;
+lreg_array (ne/2+1:ne,1)      = 2;
+permeability_array (1:ne/2,1)     = permeability_coarse_m2;
+permeability_array (ne/2+1:ne,1)  = permeability_fine_m2;
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% INPUT FROM DATESET1 TO 22
 % PART1 is the name
 inp = vapinpObj('COLUMN','read_from_file','no');   % setup a empty inpObj
@@ -256,7 +289,7 @@ inp.rpmax  = 5e+3;
 inp.rumax  = 1.0e-2;
 % ##  [CSOLVP]  [ITRMXP]         [TOLP]
 inp.csolvp = 'ORTHOMIN' ;
-inp.itrmxp = 2000;
+inp.itrmxp = 200000;
 inp.tolp   = 1.e-12;
 
 %##  [CSOLVU]  [ITRMXU]         [TOLU]
@@ -396,7 +429,7 @@ inp.met    = 2;
 inp.mar    = 1;
 inp.msr    = 10;
 inp.msc    = 1;			
-inp.mht    = 2;
+inp.mht    = 0;
 inp.mvt    = 1;				
 inp.mft    = 1;	
 inp.mrk    = 1;	
@@ -488,12 +521,12 @@ inp.br   = -1.04;
 % ##  ECTO--- ESSENTRICITY AND TORTUOSITY THE DEFAULT VALUE IS 0.5
 % ##  [SWRES1] [AA1]  [VN1]  [SWRES2]    [AA2]   [VN2]  [SWRES3]  [LAM3]   [PHYB3]  [SWRES4]   [LAM4]  [PHYB4]  [PHY0]   [ECTO]
       % 0.06   14.5D0  8.5D0    0.06      15.D0   9.2D0    0.09D0   8.0D0   0.2D0   0.08D0     4.2D0   0.045    5.0D4     0.5D0
-inp.swres1  = 0.06; 
-inp.aa1     = 14.5;   
-inp.vn1     = 8.5;
-inp.swres2  = 0.;
-inp.aa2     = 0.;
-inp.vn2     = 0.;
+inp.swres1  = 0.06; %coarse sand
+inp.aa1     = 14.;   
+inp.vn1     = 6.5;
+inp.swres2  = 0.1; %fine sand
+inp.aa2     = 3.5;
+inp.vn2     = 7.5;
 inp.swres3  = 0.;
 inp.lam3    = 0.;
 inp.phyb3   = 0.;
@@ -575,11 +608,11 @@ inp.porfac = 1.;
 
 %##      [II]    [NRE    G(II)]  [X(II)] [Y(II)] [Z(II)] [POR(II)]
 inp.ii   = (1:nn)';
-inp.nreg = zeros(nn,1)+1;
+inp.nreg = nreg_array;
 inp.x    = x_nod_array;
 inp.y    = y_nod_array;
 inp.z    = zeros(nn,1)+dz;
-inp.por  = zeros(nn,1)+porosity;
+inp.por  = porosity_array;
 
 %% ##  DATASET 15:  ELEMENTWISE DATA
 %##             [PMAXFA]        [PMINFA]        [ANG1FA]        [ALMAXF]        [ALMINF]        [ATMAXF]        [ATMINF]
@@ -594,9 +627,9 @@ inp.atminf = 1.;
 %##     [L]      [LREG(L)]       [PMAX(L)]       [PMIN(L)]       [ANGLEX(L)]     [ALMAX(L)]      [ALMIN(L)]      [ATMAX(L)]      [ATMIN(L)]
 
 inp.l       =(1:ne)';
-inp.lreg    =zeros(ne,1)+1;
-inp.pmax    =zeros(ne,1)+permeability_sand_m2;
-inp.pmin    =zeros(ne,1)+permeability_sand_m2;
+inp.lreg    =lreg_array;
+inp.pmax    =permeability_array;
+inp.pmin    =permeability_array;
 inp.anglex  =zeros(ne,1);
 inp.almax   =zeros(ne,1)+0.001;
 inp.almin   =zeros(ne,1)+0.001;
@@ -628,7 +661,7 @@ if water_table_m ==0
 	inp.pbc  = pbc';
 	inp.ubc  = ubc';
 	inp.npbc = length(inp.pbc);
-end	
+end 	   
 
 %mask_mtx_aquifer_boundary_gravity_compensated_left = and(y_nod_mtx_gravity_compensated_m<-4, x_nod_mtx_gravity_compensated_m<0.01);
 %ipbc_node_idx_array_left                           = node_index_mtx_gravity_compensated(mask_mtx_aquifer_boundary_gravity_compensated_left);
@@ -686,10 +719,10 @@ fprintf('use the original ics file')
 % ics file
 ics       = icsObj('COLUMN','read_from_file','no');
 ics.tics  = 0.0;
-%ics.cpuni = 'NONUNIFORM';
-%ics.pm1   = pm1_mtx_gravity_pa;
-ics.cpuni = 'UNIFORM';
-ics.pm1   = 10;
+ics.cpuni = 'NONUNIFORM';
+ics.pm1   = pm1_mtx_gravity_pa;
+% ics.cpuni = 'UNIFORM';
+% ics.pm1   = 10;
 ics.cuuni = 'UNIFORM';
 ics.um1   = initial_concentration_kgPkg ;
 ics.ctuni = 'UNIFORM';
