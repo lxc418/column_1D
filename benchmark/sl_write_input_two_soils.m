@@ -193,10 +193,10 @@ porosity_array (nn/2+1:nn,1)  = porosity_fine;
 end
 %elementwise
 if mod(nex,2)==1 %odd number
-nreg_array (1:(nex+1)/2*ney,1)  = 1;
-nreg_array ((nex+1)/2*ney+1:ne,1) = 2;
-porosity_array (1:(nex+1)/2*ney,1)  = porosity_coarse;
-porosity_array ((nex+1)/2*ney+1:ne,1) = porosity_fine;
+lreg_array (1:(nex+1)/2*ney,1)  = 1;
+lreg_array ((nex+1)/2*ney+1:ne,1) = 2;
+permeability_array (1:(nex+1)/2*ney,1)  = permeability_coarse_m2;
+permeability_array ((nex+1)/2*ney+1:ne,1) = permeability_fine_m2;
 
 else
 lreg_array (1:ne/2,1)         = 1;
