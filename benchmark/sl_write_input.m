@@ -1,5 +1,6 @@
 clear all
 close all
+run('/storage/macondo/s4524462/SutraLab/mfiles/slsetpath.m')															
 c=ConstantObj();  % all the constants, we suggest to use c.g rather than 9.81 in the script to enhance readerbility;
 
 %% SUTRA.fil
@@ -28,7 +29,9 @@ fil.export_to_file();
 porosity                    = 0.39;
 c_saltwater_kgPkg           = 0.035;
 % c_freshwater_kgPkg          = 0.0001;
-water_table_m               = 0.1;
+constant_water_table_m      = 0.1;
+relative_humidity			= 0.59;
+aero_resistance				= 250;								   							 
 
 initial_temperature_C       = 25;
 initial_concentration_kgPkg = 0.035;
@@ -179,7 +182,7 @@ uinc = (-iqcp + qinc-1)./ny;
 inp = vapinpObj('COLUMN','read_from_file','no');   % setup a empty inpObj
 
 % ##  DATASET 1
-inp.title1 = '2-D column simulation for medium sand (2021)';
+inp.title1 = '2-D column simulation for sand (2021)';
 inp.title2 = 'Generating input using sutralab';
 
 % ##  DATASET 2A
@@ -396,7 +399,7 @@ inp.met    = 2;
 inp.mar    = 1;
 inp.msr    = 10;
 inp.msc    = 1;			
-inp.mht    = 2;
+inp.mht    = 0;
 inp.mvt    = 1;				
 inp.mft    = 1;	
 inp.mrk    = 1;	
@@ -413,15 +416,15 @@ inp.mrk    = 1;
 % #     PET... (PA) WHEN PORE WATER PRESSURE REACHED THE POINT LOWER THAN PET, EVAPORATION IS TAKING PLACE
 % #     UVM... (KG/KG) SOLUBILITY
 % #     NGT... IF =1 EVAPORATION IS SWICHED OFF DURING NIGHT TIME, IF =0 IT IS ALWAYS ON
-% #     ITE... TEMPERATORYLY NOT USING, IT WAS DESIGNED FOR THE NUMBER OF TIME CALL FOR BCTIME
+% #     ITE... ITE=0 SOLID SALT IS OBTAINED FROM SALT CURVE, ITE=1 SM IS INHERITED FROM *.ICS FILE
 % ##         [QET]         [UET]          [PET]          [UVM]        [NIGHT]     [ITE]
-            % 2.0          1.D-5       -0.001D+00      0.264D0           0          1
+            % 2.0          1.D-5       -0.001D+00      0.264D0           0          0
 inp.qet    = 2.;
 inp.uet    = 1.e-5;
 inp.pet    = -0.001;
 inp.uvm    = 0.264;			
 inp.night  = 0;
-inp.ite    = 1;				
+inp.ite    = 0;				
 					
             
 % ##  DATASET 13E: EVAPORATION PARAMETER
@@ -440,11 +443,11 @@ inp.ite    = 1;
 % ##              SEE PAGE
 % ##         [TMA]       [TMI]      [ALF]        [RS]        [RH]        [AP]        [BP]       [U2]       [TSD]    [SCF]
             % 25.D0      25.0       0.2       58.67214    0.52     17.8636        0.044     329.5       24.2D0      0.1818
-inp.tma   = 25.;
-inp.tmi   = 25.;
+inp.tma   = initial_temperature_C;
+inp.tmi   = initial_temperature_C;
 inp.alf   = 0.2;
 inp.rs    = 58.67214;			
-inp.rh    = 0.1;
+inp.rh    = relative_humidity;
 inp.ap    = 17.8636;					
 inp.bp    = 0.044;					
 inp.u2    = 329.5;					
@@ -457,7 +460,7 @@ inp.scf   = 0.1818;
 % ##     SWRAT..  (-)   PARAMETER TO SWICH ON (1.D) OR OFF(0.D0) THE TEMPERATURE CHANGE ON THE SURFACE
 % ##         [RAVT]    [RAVS]   [SWRAT]
            % 206.D0     50.D0     0.D0
-inp.ravt   = 85.;
+inp.ravt   = aero_resistance;
 inp.ravs   = 50.;
 inp.swart  = 0.;
           
@@ -615,20 +618,20 @@ inp.uinc  = uinc;
 
 % DATASET 19:  Data for Specified Pressure Nodes
 %###  [IPBC]                [PBC]                [UBC]
-if water_table_m ==0
+if constant_water_table_m ==0
 	inp.ipbc = '%';
 	inp.pbc  = '%';
 	inp.ubc  = '%';
 	else
 	bottom_nodes                = node_index_mtx_gravity_compensated(ny,:)';  % below 4 metre, greater than 200 m away from the centre
-	pbc(1:nx)                   = water_table_m*(c.rhow_pure_water+700*c_saltwater_kgPkg)*c.g;
+	pbc(1:nx)                   = constant_water_table_m*(c.rhow_pure_water+700*c_saltwater_kgPkg)*c.g;
 	ubc(1:nx)                   = c_saltwater_kgPkg;
 
 	inp.ipbc = bottom_nodes;
 	inp.pbc  = pbc';
 	inp.ubc  = ubc';
 	inp.npbc = length(inp.pbc);
-end	
+end  
 
 %mask_mtx_aquifer_boundary_gravity_compensated_left = and(y_nod_mtx_gravity_compensated_m<-4, x_nod_mtx_gravity_compensated_m<0.01);
 %ipbc_node_idx_array_left                           = node_index_mtx_gravity_compensated(mask_mtx_aquifer_boundary_gravity_compensated_left);
