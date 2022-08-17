@@ -115,7 +115,7 @@ yyaxis right
 
     %% -------------  sub 2 ET for all surface nodes  --------------
     a.sub2=subplot('position'...
-         ,[fig_pos.left+0.4,fig_pos.bottom,...
+         ,[fig_pos.left+0.8,fig_pos.bottom,...
           fig_pos.length/4,fig_pos.height]);
 yyaxis left		   
     a.plot2=plot(x_matrix(1,:), evapo_mmday(nt,:),...
@@ -140,11 +140,11 @@ yyaxis right %plot solid salt thickness
     get(gca,'xtick');
     set(gca,'fontsize',10);
     ylabel('Solid salt (mm)','FontSize',a.fs);
-    axis([0 x_matrix(1,end) 0 3])        
+    axis([0 x_matrix(1,end) 0 0.6])        
    
-%% -------- contour plot on Saturation ---------
-    a.sub4=subplot('position'...
-         ,[fig_pos.left,fig_pos.bottom-0.32,...
+%% -------- sub 3 contour plot on Saturation ---------
+    a.sub3=subplot('position'...
+         ,[fig_pos.left+0.4,fig_pos.bottom,...
           fig_pos.length/3,fig_pos.height]);		  
     % write pressure and conc in matrix form.
 	% yyaxis left
@@ -171,9 +171,9 @@ yyaxis right %plot solid salt thickness
              % 'w-','linewidth',a.lw);hold off
     % ylabel('surface saturation (-)','FontSize',a.fs);
 	
-%% -------- Saturation profile---------
-a.sub5=subplot('position'...
-         ,[fig_pos.left+0.17,fig_pos.bottom-0.32,...
+%% --- Saturation profile --
+	a.sub3=subplot('position'...
+         ,[fig_pos.left+0.57,fig_pos.bottom,...
           fig_pos.length/4,fig_pos.height]);		  
     % write pressure and conc in matrix form.
     a.plot4=plot(s_matrix(:,left_centre),y_matrix(:,1),'-','color',[0 0.4470 0.7410],'linewidth',a.lw);hold on
@@ -182,16 +182,17 @@ a.sub5=subplot('position'...
     set(gca,'fontsize',a.fs);
     xlabel('Saturation (-)','FontSize',a.fs);
     ylabel('Elevation (m)','FontSize',a.fs);
-    axis([0 1.1 0 y_matrix(inp.nn1,1)])        
+	legend ('coarse','fine')
+    axis([0 1.1 0 y_matrix(inp.nn1,1)])  
 
-%% -------- contour plot on concentration ---------
-    a.sub5=subplot('position'...
+%% -------- sub 4 contour plot on concentration ---------
+    a.sub4=subplot('position'...
          ,[fig_pos.left+0.4,fig_pos.bottom-0.32,...
           fig_pos.length/3,fig_pos.height]);
     
     % write pressure and conc in matrix form.
     c_matrix = reshape(nod(nt).terms{c_idx},[inp.nn1,inp.nn2]);    
-    a.plot5=contourf(x_matrix,y_matrix,c_matrix,'EdgeColor','none');hold off
+    a.plot4=contourf(x_matrix,y_matrix,c_matrix,'EdgeColor','none');hold off
 	
 %	scatter(nod(1).terms{x_idx},nod(1).terms{y_idx},2,'filled','w');
     color = jet;
@@ -206,71 +207,131 @@ a.sub5=subplot('position'...
     ylabel('Elevation (m)','FontSize',a.fs);
 	axis([0 x_matrix(1,end) 0 inf])        
 
-%% -------- Concentration profile---------
-a.sub6=subplot('position'...
+%% --- Concentration profile --
+	a.sub4=subplot('position'...
          ,[fig_pos.left+0.57,fig_pos.bottom-0.32,...
           fig_pos.length/4,fig_pos.height]);		  
     % write pressure and conc in matrix form.
-    a.plot6=plot(c_matrix(:,left_centre),y_matrix(:,1),'-','color',[0 0.4470 0.7410],'linewidth',a.lw);hold on
-    a.plot6=plot(c_matrix(:,right_centre),y_matrix(:,1),'-','color',[0.8500 0.3250 0.0980],'linewidth',a.lw);hold off
+    a.plot4=plot(c_matrix(:,left_centre),y_matrix(:,1),'-','color',[0 0.4470 0.7410],'linewidth',a.lw);hold on
+    a.plot4=plot(c_matrix(:,right_centre),y_matrix(:,1),'-','color',[0.8500 0.3250 0.0980],'linewidth',a.lw);hold off
     set(gca,'fontsize',a.fs);
     xlabel('Concentration (-)','FontSize',a.fs);
     % ylabel('Elevation (m)','FontSize',a.fs);
     axis([0 0.3 0 y_matrix(inp.nn1,1)])   	
 	
-	%% -------- vapor & liquid water flux profile---------
-a.sub7=subplot('position'...
-         ,[fig_pos.left+0.57,fig_pos.bottom,...
+%% -------- sub 5 Temperature plot on concentration ---------
+    a.sub5=subplot('position'...
+         ,[fig_pos.left+0.4,fig_pos.bottom-0.64,...
+          fig_pos.length/3,fig_pos.height]);
+    
+    % write pressure and conc in matrix form.
+    temp_matrix = reshape(nod(nt).terms{temp_idx},[inp.nn1,inp.nn2]);    
+    a.plot5=contourf(x_matrix,y_matrix,temp_matrix-273.15,'EdgeColor','none');hold off
+	
+%	scatter(nod(1).terms{x_idx},nod(1).terms{y_idx},2,'filled','w');
+    color = jet;
+    colormap(gca,color);
+	% caxis([0 0.264])
+    cbsal = colorbar;
+    cbsal.Label.String = 'Temperature (°C)';
+    get(gca,'xtick');
+    set(gca,'fontsize',a.fs);
+    title('Temperature (°C)');
+    xlabel('x (m)','FontSize',a.fs);
+    ylabel('Elevation (m)','FontSize',a.fs);
+	axis([0 x_matrix(1,end) 0 inf])        
+
+%% --- temperature profile --
+a.sub5=subplot('position'...
+         ,[fig_pos.left+0.57,fig_pos.bottom-0.64,...
+          fig_pos.length/4,fig_pos.height]);		  
+    % write pressure and conc in matrix form.
+    a.plot5=plot(temp_matrix(:,left_centre)-273.15,y_matrix(:,1),'-','color',[0 0.4470 0.7410],'linewidth',a.lw);hold on
+    a.plot5=plot(temp_matrix(:,right_centre)-273.15,y_matrix(:,1),'-','color',[0.8500 0.3250 0.0980],'linewidth',a.lw);hold off
+    set(gca,'fontsize',a.fs);
+    xlabel('Temperature (°C)','FontSize',a.fs);
+    % ylabel('Elevation (m)','FontSize',a.fs);
+    % axis([0 0.3 0 y_matrix(inp.nn1,1)])   	
+	
+	
+%% -------- sub 6 vapor & liquid water flux profile---------
+% a.sub6=subplot('position'...
+         % ,[fig_pos.left,fig_pos.bottom-0.64,...
+          % fig_pos.length/4,fig_pos.height]);		  
+    % % write pressure and conc in matrix form.
+	% qvy_matrix= qv(nt).qvy;%vapor (do not need to reshape)
+	% vy_matrix = reshape(ele(nt).terms{vy_idx},[inp.nn1-1,inp.nn2-1]);
+    % a.plot6=plot(qvy_matrix(:,left_centre).*c.ms2mmday,y_ele_matrix(:,1),'r-',...
+		% vy_matrix(:,left_centre).*c.ms2mmday,y_ele_matrix(:,1),'b-','linewidth',a.lw);hold off
+    % get(gca,'xtick');
+    % set(gca,'fontsize',a.fs);
+    % % xlabel('vertical flux (mm/day)','FontSize',a.fs);
+    % ylabel('Elevation (m)','FontSize',a.fs);
+    % % axis([inf inf 0 y_matrix(inp.nn1,1)])  
+    % title('coarse sand');
+	
+% a.sub6=subplot('position'...
+         % ,[fig_pos.left+0.17,fig_pos.bottom-0.64,...
+          % fig_pos.length/4,fig_pos.height]);		  
+    % % write pressure and conc in matrix form.
+	% qvy_matrix= qv(nt).qvy;%vapor (do not need to reshape)
+	% vy_matrix = reshape(ele(nt).terms{vy_idx},[inp.nn1-1,inp.nn2-1]);
+    % a.plot6=plot(qvy_matrix(:,right_centre).*c.ms2mmday,y_ele_matrix(:,1),'r-',...
+		% vy_matrix(:,right_centre).*c.ms2mmday,y_ele_matrix(:,1),'b-','linewidth',a.lw);hold off
+    % get(gca,'xtick');
+    % set(gca,'fontsize',a.fs);
+    % xlabel('vertical flux (mm/day)','FontSize',a.fs);
+    % ylabel('Elevation (m)','FontSize',a.fs);
+    % title('fine sand');
+	
+a.sub6=subplot('position'...
+         ,[fig_pos.left,fig_pos.bottom-0.64,...
           fig_pos.length/4,fig_pos.height]);		  
     % write pressure and conc in matrix form.
 	qvy_matrix= qv(nt).qvy;%vapor (do not need to reshape)
 	vy_matrix = reshape(ele(nt).terms{vy_idx},[inp.nn1-1,inp.nn2-1]);
-    a.plot6=plot(qvy_matrix(:,left_centre).*c.ms2mmday,y_ele_matrix(:,1),'r-',...
-		vy_matrix(:,left_centre).*c.ms2mmday,y_ele_matrix(:,1),'b-','linewidth',a.lw);hold off
+    a.plot6=plot(qvy_matrix(:,left_centre).*c.ms2mmday,y_ele_matrix(:,1),'-','color',[0 0.4470 0.7410],'linewidth',a.lw);hold on
+    a.plot6=plot(qvy_matrix(:,right_centre).*c.ms2mmday,y_ele_matrix(:,1),'-','color',[0.8500 0.3250 0.0980],'linewidth',a.lw);hold off
     get(gca,'xtick');
     set(gca,'fontsize',a.fs);
     % xlabel('vertical flux (mm/day)','FontSize',a.fs);
     ylabel('Elevation (m)','FontSize',a.fs);
     % axis([inf inf 0 y_matrix(inp.nn1,1)])  
-    title('coarse sand');
+    title('vapor flux');
 	
-a.sub7=subplot('position'...
-         ,[fig_pos.left+0.72,fig_pos.bottom,...
+a.sub6=subplot('position'...
+         ,[fig_pos.left+0.17,fig_pos.bottom-0.64,...
           fig_pos.length/4,fig_pos.height]);		  
     % write pressure and conc in matrix form.
-	qvy_matrix= qv(nt).qvy;%vapor (do not need to reshape)
-	vy_matrix = reshape(ele(nt).terms{vy_idx},[inp.nn1-1,inp.nn2-1]);
-    a.plot6=plot(qvy_matrix(:,right_centre).*c.ms2mmday,y_ele_matrix(:,1),'r-',...
-		vy_matrix(:,right_centre).*c.ms2mmday,y_ele_matrix(:,1),'b-','linewidth',a.lw);hold off
+    a.plot6=plot(vy_matrix(:,left_centre).*c.ms2mmday,y_ele_matrix(:,1),'-','color',[0 0.4470 0.7410],'linewidth',a.lw);hold on
+    a.plot6=plot(vy_matrix(:,right_centre).*c.ms2mmday,y_ele_matrix(:,1),'-','color',[0.8500 0.3250 0.0980],'linewidth',a.lw);hold off
     get(gca,'xtick');
     set(gca,'fontsize',a.fs);
     xlabel('vertical flux (mm/day)','FontSize',a.fs);
     ylabel('Elevation (m)','FontSize',a.fs);
-    title('fine sand');
-	
-	%% -------- Relative K profile---------
+    title('liquid flux');
+		
+%% -------- sub 7 Relative K profile---------
 a.sub8=subplot('position'...
-         ,[fig_pos.left,fig_pos.bottom-0.64,...
+         ,[fig_pos.left+0.8,fig_pos.bottom-0.32,...
           fig_pos.length/4,fig_pos.height]);		  
     % write pressure and conc in matrix form.
     kr_matrix = reshape(ele(nt).terms{kr_idx},[inp.nn1-1,inp.nn2-1]);    
-    a.plot6=semilogx(kr_matrix(:,left_centre),y_ele_matrix(:,1),'-','color',[0 0.4470 0.7410],'linewidth',a.lw);hold on
-    a.plot6=semilogx(kr_matrix(:,right_centre),y_ele_matrix(:,1),'-','color',[0.8500 0.3250 0.0980],'linewidth',a.lw);hold off
+    a.plot7=semilogx(kr_matrix(:,left_centre),y_ele_matrix(:,1),'-','color',[0 0.4470 0.7410],'linewidth',a.lw);hold on
+    a.plot7=semilogx(kr_matrix(:,right_centre),y_ele_matrix(:,1),'-','color',[0.8500 0.3250 0.0980],'linewidth',a.lw);hold off
     get(gca,'xtick');
     set(gca,'fontsize',a.fs);
     xlabel('Relative K (-)','FontSize',a.fs);
     ylabel('Elevation (m)','FontSize',a.fs);
     axis([-inf 1.09 0 y_matrix(inp.nn1,1)])
 
-
-	
-    %% ------- velocity vector for each node  --------------
-    a.sub9=subplot('position'...
-         ,[fig_pos.left+0.4,fig_pos.bottom-0.64,...
+%% -------- sub 8 velocity vector for each node  --------------
+    a.sub8=subplot('position'...
+         ,[fig_pos.left,fig_pos.bottom-0.32,...
           fig_pos.length/4,fig_pos.height]);
     vx_matrix = reshape(ele(nt).terms{vx_idx},[inp.nn1-1,inp.nn2-1]);
     vy_matrix = reshape(ele(nt).terms{vy_idx},[inp.nn1-1,inp.nn2-1]);
-    a.plot3=quiver(x_ele_matrix,y_ele_matrix,vx_matrix,vy_matrix);hold off
+    a.plot8=quiver(x_ele_matrix,y_ele_matrix,vx_matrix,vy_matrix);hold off
     %a.plot1=plot(eslab(1,:),eslab(2,:),'cx','linewidth',a.lw);
     get(gca,'xtick');
     set(gca,'fontsize',a.fs);
@@ -279,8 +340,8 @@ a.sub8=subplot('position'...
     title('Liquid Velocity')
     axis([0 x_matrix(1,end) 0 y_matrix(inp.nn1,1)])
 	
-	a.sub10=subplot('position'...
-         ,[fig_pos.left+0.57,fig_pos.bottom-0.64,...
+	a.sub8=subplot('position'...
+         ,[fig_pos.left+0.17,fig_pos.bottom-0.32,...
           fig_pos.length/4,fig_pos.height]);
     qvx_mtx = qv(nt).qvx; % vector of vapor is acquired from the concentration difference bewteen two nodes,
     qvy_mtx = qv(nt).qvy; % which is used to calculate the vector in element center.
@@ -292,7 +353,7 @@ a.sub8=subplot('position'...
             qvy_plot_mtx(j,i) = (qvy_mtx(j,i)+qvy_mtx(j,i+1))/2;
         end
     end
-    a.plot10=quiver(x_ele_matrix,y_ele_matrix,qvx_plot_mtx,qvy_plot_mtx,'k-');hold off
+    a.plot8=quiver(x_ele_matrix,y_ele_matrix,qvx_plot_mtx,qvy_plot_mtx,'k-');hold off
     %a.plot1=plot(eslab(1,:),eslab(2,:),'cx','linewidth',a.lw);
     get(gca,'xtick');
     set(gca,'fontsize',a.fs);
