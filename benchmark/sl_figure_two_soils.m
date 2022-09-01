@@ -7,7 +7,7 @@ c=ConstantObj();
 time_step = length(et);
 time_day  = [bcof.tout]/3600/24;%second to day
 time_nod_day = arrayfun(@(y) y.tout,nod) * c.dayPsec;
-water_table  = inp.pbc/9800;
+water_table  = inp.pbc/(c.rhow_pure_water+700*0.035);	
 
 x_matrix = reshape(nod(1).terms{x_idx},[inp.nn1,inp.nn2]);%inp.nn2 is number of nodes in y direction 
 y_matrix = reshape(nod(1).terms{y_idx},[inp.nn1,inp.nn2]);
@@ -192,20 +192,31 @@ yyaxis right %plot solid salt thickness
     
     % write pressure and conc in matrix form.
     c_matrix = reshape(nod(nt).terms{c_idx},[inp.nn1,inp.nn2]);    
-    a.plot4=contourf(x_matrix,y_matrix,c_matrix,'EdgeColor','none');hold off
+    % a.plot4=contourf(x_matrix,y_matrix,c_matrix,'EdgeColor','none');hold off
 	
-%	scatter(nod(1).terms{x_idx},nod(1).terms{y_idx},2,'filled','w');
+	a.plot4=contourf(x_matrix,y_matrix,log10(c_matrix*1000+1-inp.ubc(1)*1000),'LevelStep',0.005,'LineStyle','None');hold on
     color = jet;
     colormap(gca,color);
-	caxis([0 0.264])
-    cbsal = colorbar;
-    cbsal.Label.String = 'Concentration (-)';
-    get(gca,'xtick');
+	caxis([0.09 2.35])
+	set(gca,'ColorScale','log')%log scale of colormap
+	cbsal = colorbar;
+    cbsal.Label.String = 'Salinity (ppt)';
+	cbsal.TicksMode    = 'manual';
+	cbsal.Ticks        = [0.09,0.3,0.78,1.2,1.82,2.35];
+	cbsal.TickLabels   = [35,36,40,50,100,260];	
+	
+%	scatter(nod(1).terms{x_idx},nod(1).terms{y_idx},2,'filled','w');
+    % color = jet;
+    % colormap(gca,color);
+	% caxis([0 0.264])
+    % cbsal = colorbar;
+    % cbsal.Label.String = 'Concentration (-)';
+    % get(gca,'xtick');
     set(gca,'fontsize',a.fs);
     title('Concentration (kg/kg)');
     xlabel('x (m)','FontSize',a.fs);
     ylabel('Elevation (m)','FontSize',a.fs);
-	axis([0 x_matrix(1,end) 0 inf])        
+	axis([0 x_matrix(1,end) 0 y_matrix(end,1)])    
 
 %% --- Concentration profile --
 	a.sub4=subplot('position'...

@@ -25,19 +25,19 @@ fil.export_to_file();
 
 %%
 %soil properties 
-porosity_coarse             = 0.41; % nreg_array=1
+porosity_coarse             = 0.39; % nreg_array=1
 porosity_fine               = 0.36; % nreg_array=2
-permeability_coarse_m2      = 1.e-9;
+permeability_coarse_m2      = 1.e-10;
 permeability_fine_m2        = 1.15e-11;
 
-c_saltwater_kgPkg           = 0.1;
+c_saltwater_kgPkg           = 0.035;
 % c_freshwater_kgPkg          = 0.0001;
-water_table_m               = 0.2;
+water_depth_m               = 0.14;
 diffusivity					= 1e-9;
 
 initial_temperature_C       = 25;
-initial_concentration_kgPkg = 0.1;
-initial_head_aquifer_m      = 0.2;
+initial_concentration_kgPkg = 0.035;
+% initial_head_aquifer_m      = 0.13;
 
 time_scale=10; 
 time_cycle=500000; %around 6 days
@@ -46,21 +46,21 @@ time_cycle=500000; %around 6 days
 BLOCK = 1; %input block number (every block must be a quadrilateral and the left and right side
 %								should be parallel to the y axis)
 x1  = 0;
-x2  = 0.008;
-nex = 8; %Number of segments along x
+x2  = 0.15;
+nex = 75; %Number of segments along x
 
 y(1,1)=0;
 y(1,2)=0;
 
-ney_section(1)=40; %Number of segments between y1 and y2, must be consistente in every block
+ney_section(1)=10; %Number of segments between y1 and y2, must be consistente in every block
 
-y(2,1)=0.20;
-y(2,2)=0.20;
+y(2,1)=0.10;
+y(2,2)=0.10;
 
-ney_section(2)=10;
+ney_section(2)=150;
 
-y(3,1)=0.25;
-y(3,2)=0.25;
+y(3,1)=0.40;
+y(3,2)=0.40;
 
 % ney_section(3)=30;
 
@@ -70,6 +70,8 @@ y(3,2)=0.25;
 dz=0.01; %default
 
 mesh %mesh must be called in every block
+water_table_m = y(3,2) - water_depth_m;
+initial_head_aquifer_m = water_table_m;									   						   
 %%
 % %BLOCK 2
 % BLOCK = 2;
@@ -522,10 +524,10 @@ inp.br   = -1.04;
 % ##  [SWRES1] [AA1]  [VN1]  [SWRES2]    [AA2]   [VN2]  [SWRES3]  [LAM3]   [PHYB3]  [SWRES4]   [LAM4]  [PHYB4]  [PHY0]   [ECTO]
       % 0.06   14.5D0  8.5D0    0.06      15.D0   9.2D0    0.09D0   8.0D0   0.2D0   0.08D0     4.2D0   0.045    5.0D4     0.5D0
 inp.swres1  = 0.06; %coarse sand
-inp.aa1     = 14.;   
-inp.vn1     = 6.5;
+inp.aa1     = 15.;   
+inp.vn1     = 7.0;
 inp.swres2  = 0.1; %fine sand
-inp.aa2     = 3.5;
+inp.aa2     = 6.;
 inp.vn2     = 7.5;
 inp.swres3  = 0.;
 inp.lam3    = 0.;
